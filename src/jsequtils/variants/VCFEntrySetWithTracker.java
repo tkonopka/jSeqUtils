@@ -16,6 +16,7 @@
 package jsequtils.variants;
 
 import java.io.File;
+import java.util.ArrayList;
 import jsequtils.genome.GenomeInfo;
 import jsequtils.genome.GenomePositionInterface;
 
@@ -39,6 +40,15 @@ public class VCFEntrySetWithTracker extends VCFEntrySet {
     // for the linear search, need to have a record of the last searched-for position
     private int lastindex = 0;
 
+    public VCFEntrySetWithTracker(ArrayList<VCFEntry> vars, GenomeInfo ginfo, boolean withindels, int maxlinear) {
+        super(vars, ginfo, withindels);
+        this.maxlinear = maxlinear;
+    }
+    
+    public VCFEntrySetWithTracker(ArrayList<VCFEntry> vars, GenomeInfo ginfo, boolean withindels) {
+        this(vars, ginfo, withindels, 3);        
+    }
+    
     public VCFEntrySetWithTracker(File f, GenomeInfo ginfo, boolean withindels, int maxlinear) {
         super(f, ginfo, withindels);
         this.maxlinear = maxlinear;
@@ -65,7 +75,7 @@ public class VCFEntrySetWithTracker extends VCFEntrySet {
      */
     @Override
     public int getIndexOf(GenomePositionInterface entry) {
-
+                
         // reminder for compare (o1, o2)
         // 0 - identical
         // >0 - o1 is after o2

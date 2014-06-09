@@ -28,8 +28,8 @@ import jsequtils.genome.GenomePositionComparator;
 import jsequtils.genome.GenomePositionInterface;
 
 /**
- * Container class that stores a set of variants in an array. Array should be immutable, 
- * i.e. user cannot add or remove items to the set.
+ * Container class that stores a set of variants in an array. Array should be
+ * immutable, i.e. user cannot add or remove items to the set.
  *
  *
  * @author tkonopka
@@ -43,11 +43,38 @@ public class VCFEntrySet {
     // genome information (used for sorting and searching for variants)
     private final GenomeInfo ginfo;
     private final GenomePositionComparator vcomp;
-            
+
+    /**
+     * A constructor that starts with a list of variants already in memory
+     * @param vars
+     * @param ginfo
+     * @param withindels 
+     */
+    public VCFEntrySet(ArrayList<VCFEntry> vars, GenomeInfo ginfo, boolean withindels) {
+        this.ginfo = ginfo;
+        this.vcomp = new GenomePositionComparator();
+
+        // get copy of variants that meet withindels criteria
+        ArrayList<VCFEntry> tempvars = new ArrayList<>(vars.size());
+        for (int i = 0; i < vars.size(); i++) {
+            if (withindels || !vars.get(i).isIndel()) {
+                tempvars.add(new VCFEntry(vars.get(i).toString(), ginfo));
+            }
+        }
+
+        // move the variants into a fixed-length array
+        variants = new VCFEntry[tempvars.size()];
+        for (int i = 0; i < tempvars.size(); i++) {
+            variants[i] = tempvars.get(i);
+        }
+
+        Arrays.sort(variants, vcomp);
+    }
+
     /**
      *
-     * A set of variants are read from a file. 
-     * Header, columns and variants will be stored in memory.
+     * A set of variants are read from a file. Header, columns and variants will
+     * be stored in memory.
      *
      * @param f
      * @param vcomp
@@ -63,7 +90,7 @@ public class VCFEntrySet {
 
         // temporary object (because don't know how many variants to read from file, use resizeable arraylist)
         ArrayList<VCFEntry> tempvars = new ArrayList<VCFEntry>(1048576);
-        
+
         // read entries from the file into memory
         try {
             vcfreader = BufferedReaderMaker.makeBufferedReader(f);
@@ -82,7 +109,7 @@ public class VCFEntrySet {
             }
 
             // read the whole vcf file into memory
-            
+
             while (line != null) {
                 VCFEntry nowentry = new VCFEntry(line, ginfo);
                 // add it if the variant is a substitution or if indels are explicitly allowed
@@ -96,40 +123,41 @@ public class VCFEntrySet {
                 line = vcfreader.readLine();
             }
             vcfreader.close();
-        } catch (Exception ex) {           
+        } catch (Exception ex) {
             System.out.println("Error reading vcf file: " + ex.getMessage());
         }
-        
+
         // move the variants into a fixed-length array
         variants = new VCFEntry[tempvars.size()];
         for (int i = 0; i < tempvars.size(); i++) {
             variants[i] = tempvars.get(i);
         }
-        
+
         Arrays.sort(variants, vcomp);
         System.gc();
     }
-    
+
     /**
-     * 
+     *
      * @param index
-     * @return 
-     * 
-     * variant at desired index. This function returns the object in the set, not a copy, so be careful.
-     * If the VCFEntry is changed on the chromosome or position field, the set may become unordered and search
-     * will not longer work properly. 
-     * 
+     * @return
+     *
+     * variant at desired index. This function returns the object in the set,
+     * not a copy, so be careful. If the VCFEntry is changed on the chromosome
+     * or position field, the set may become unordered and search will not
+     * longer work properly.
+     *
      */
     public VCFEntry getVariant(int index) {
         return variants[index];
     }
 
     /**
-     * 
-     * @return 
-     * 
+     *
+     * @return
+     *
      * number of variants in the set.
-     * 
+     *
      */
     public int size() {
         return variants.length;
@@ -146,7 +174,7 @@ public class VCFEntrySet {
     /**
      * Checks if the entryset has a variant at position indicated by the given
      * variant.
-     *     
+     *
      * @param entry
      *
      * @return
@@ -182,12 +210,12 @@ public class VCFEntrySet {
     }
 
     /**
-     * 
+     *
      * @param entry
-     * @return 
-     * 
+     * @return
+     *
      * null if the entry set does not contain a variant at indicated position.
-     * 
+     *
      */
     public VCFEntry getAtLocus(GenomePositionInterface entry) {
         int pos = Arrays.binarySearch(variants, entry, vcomp);
@@ -199,8 +227,7 @@ public class VCFEntrySet {
     }
 
     /**
-     * looks through a set of variants and compute how many are within an
-     * interval
+     * similar to getNumberInInterval with chrindex.
      *
      * interval is (start, end), i.e. both are included
      *
@@ -215,9 +242,27 @@ public class VCFEntrySet {
         }
 
         int chrindex = ginfo.getChrIndex(chr);
-        
+        return getNumberInInterval(chrindex, start, end);
+    }
+
+    /**
+     * looks through a set of variants and compute how many are within an
+     * interval
+     *
+     * interval is (start, end), i.e. both are included
+     *
+     * @param chr
+     * @param start
+     * @param end
+     * @return
+     */
+    public int getNumberInInterval(int chrindex, int start, int end) {
+        if (end < start) {
+            return 0;
+        }
+
         // get index of start using a binary search
-        int startindex = Arrays.binarySearch(variants, new GenomePosition(chrindex, start), vcomp);
+        int startindex = getIndexOf(new GenomePosition(chrindex, start));
         if (startindex < 0) {
             startindex = -startindex - 1;
         }
@@ -228,7 +273,7 @@ public class VCFEntrySet {
         if (end - start < 256) {
             // for short intervals, use a linear search
             int varsize = variants.length;
-            GenomePosition gend = new GenomePosition(chr, end, ginfo);
+            GenomePosition gend = new GenomePosition(chrindex, end);
             while (endindex < varsize && vcomp.compare(variants[endindex], gend) <= 0) {
                 endindex++;
             }
@@ -241,13 +286,13 @@ public class VCFEntrySet {
         }
         return endindex - startindex;
     }
-    
+
     /**
      * extensions of class to compare positions using the vcomp comparator.
-     * 
+     *
      * @param o1
      * @param o2
-     * @return 
+     * @return
      */
     int compare(Object o1, Object o2) {
         return vcomp.compare(o1, o2);

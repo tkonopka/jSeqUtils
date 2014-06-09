@@ -49,11 +49,11 @@ public class VCFEntry implements GenomePositionInterface {
     public String getChr(GenomeInfo ginfo) {
         return ginfo.getChrName(chrindex);
     }
-    
+
     public String getChr() {
         return ginfo.getChrName(chrindex);
     }
-    
+
     public void setChr(String chr) {
         this.chrindex = ginfo.getChrIndex(chr);
     }
@@ -128,6 +128,25 @@ public class VCFEntry implements GenomePositionInterface {
      */
     public VCFEntry(GenomeInfo ginfo) {
         this.ginfo = ginfo;
+    }
+
+    /**
+     * copy constructor. All fields are copied, object GenomeInfo is copied non-defensively.
+     * 
+     * @param entry 
+     */
+    public VCFEntry(VCFEntry entry) {
+        this.position = entry.position;
+        this.chrindex = entry.chrindex;
+        this.ref = entry.ref;
+        this.alt = entry.alt;
+        this.quality = entry.quality;
+        this.format = entry.format;
+        this.genotype = entry.genotype;
+        this.id = entry.id;
+        this.filter = entry.filter;
+        this.info = entry.info;
+        this.ginfo = entry.ginfo;
     }
 
     /**
