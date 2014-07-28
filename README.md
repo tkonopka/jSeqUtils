@@ -19,8 +19,15 @@ Versions
 The repo also has a folder with compiled jar files with dated versions of the library. If you'd like to use the library in a project, these jars are all you need.
 
 
+Uses
+----
+
+The library is used within the following software packages:
+* [Bamformatics](http://sourceforge.net/projects/bamformatics/)
+* [GeneticThesaurus](http://sourceforge.net/projects/geneticthesaurus/)
+
+
 Licence
 -------
-
 
 The code is released under the Apache 2.0 licence.
