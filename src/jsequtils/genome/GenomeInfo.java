@@ -45,30 +45,30 @@ public class GenomeInfo {
 
     /**
      * Define a genome with a set of chromosomes.
-     * 
+     *
      * @param chrnames
-     * 
+     *
      * list of chromosome names, in order of appearance.
-     * 
-     * @param chrlengths 
-     * 
+     *
+     * @param chrlengths
+     *
      * list of chromosome lengths, matching the order in chrnames.
-     * 
+     *
      */
     public GenomeInfo(ArrayList<String> chrnames, ArrayList<Integer> chrlengths) {
-        if (chrnames.size()!=chrlengths.size()) {
-            numchroms=0;
+        if (chrnames.size() != chrlengths.size()) {
+            numchroms = 0;
             return;
         }
-        
-        for (int i=0; i<chrnames.size(); i++) {
+
+        for (int i = 0; i < chrnames.size(); i++) {
             String nowchr = chrnames.get(i);
             int nowlen = chrlengths.get(i);
             chrindexes.put(nowchr, i);
             this.chrnames.add(nowchr);
             this.chrlengths.add(nowlen);
         }
-        
+
         this.chrnames.trimToSize();
         this.chrlengths.trimToSize();
         numchroms = this.chrnames.size();
@@ -126,7 +126,7 @@ public class GenomeInfo {
      *
      * @param index
      *
-     * index of chromosome
+     * index of chromosome. Beware, negative index will cause an exception.
      *
      * @return
      *
@@ -143,6 +143,9 @@ public class GenomeInfo {
     /**
      *
      * @param index
+     * 
+     * index of chromosome. Beware, negative index will cause an exception.
+     * 
      * @return
      *
      * length of chromosome at given index. -1 if index is out of range.

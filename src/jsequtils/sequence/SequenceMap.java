@@ -42,6 +42,7 @@ public class SequenceMap {
      * @param toupper
      * 
      * boolean determines if sequences are automatically converted to uppercase
+     * @throws java.io.IOException
      * 
      */
     public SequenceMap(File genome, boolean toupper) throws IOException {
@@ -120,7 +121,7 @@ public class SequenceMap {
     public byte getSequenceBase1(String chr, int pos) {
         if (!containsChr(chr)) {
             return '\0';
-        }
+        }        
         return(seqmap.get(chr)[pos-1]);        
     }
     

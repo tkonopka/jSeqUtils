@@ -106,7 +106,7 @@ public class FastaReader {
         while (readmore && ((s = chromosomereader.readLine()) != null)) {
             if (s.length() > 0 && s.startsWith(">")) {
                 nextname = s.substring(1);
-                readmore = false;
+                readmore = false;                
             } else {
                 sb.append(s);
             }

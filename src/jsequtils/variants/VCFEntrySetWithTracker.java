@@ -80,12 +80,16 @@ public class VCFEntrySetWithTracker extends VCFEntrySet {
         // 0 - identical
         // >0 - o1 is after o2
         // <0 - o1 is before o2
+
+        if (super.size()<1) {
+            return -1;
+        }
         
         int numtries = -1;
         int direction = 0;
         int ss = size();
         while (numtries < maxlinear) {
-            int temp = compare(entry, this.getVariant(lastindex));
+            int temp = compare(entry, this.getVariant(lastindex));            
             if (temp == 0) {
                 return lastindex;
             } else if (temp < 0) {
