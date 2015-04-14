@@ -62,8 +62,41 @@ public class VCFEntry implements GenomePositionInterface {
         return filter;
     }
 
+    /**
+     * replaces the current filter field by the new value
+     *
+     * @param filter
+     */
     public void setFilter(String filter) {
         this.filter = filter;
+    }
+
+    /**
+     * add a filter value to a vcf entry. If entry is ".", replaces with the
+     * filter. If entry contains the filter already, does nothing. If entry does
+     * not contain the filter, appends this value.
+     *
+     * @param f
+     */
+    public void addFilter(String f) {
+        // if filter status is empty or passing, simply replace current value
+        // with the new value.
+        if (this.filter.equals(".") || this.filter.equals("PASS")) {
+            this.filter = f;
+            return;
+        }
+
+        // if exisitng filter already exists, check, perhaps it already
+        // contains the required new filter code
+        String[] havefilters = this.filter.split(",");
+        for (int i = 0; i < havefilters.length; i++) {
+            if (havefilters[i].equals(f)) {
+                return;
+            }
+        }
+
+        // if reached here, need to append the filter
+        this.filter = this.filter + "," + f;
     }
 
     public String getFormat() {
@@ -131,9 +164,10 @@ public class VCFEntry implements GenomePositionInterface {
     }
 
     /**
-     * copy constructor. All fields are copied, object GenomeInfo is copied non-defensively.
-     * 
-     * @param entry 
+     * copy constructor. All fields are copied, object GenomeInfo is copied
+     * non-defensively.
+     *
+     * @param entry
      */
     public VCFEntry(VCFEntry entry) {
         this.position = entry.position;

@@ -39,16 +39,17 @@ public class VCFEntrySet {
     // hold information from a vcf file - header, column definitions, and variants
     private final StringBuilder header = new StringBuilder();
     private final StringBuilder coldefs = new StringBuilder();
-    private final VCFEntry[] variants;
+    private VCFEntry[] variants;
     // genome information (used for sorting and searching for variants)
     private final GenomeInfo ginfo;
     private final GenomePositionComparator vcomp;
 
     /**
      * A constructor that starts with a list of variants already in memory
+     *
      * @param vars
      * @param ginfo
-     * @param withindels 
+     * @param withindels
      */
     public VCFEntrySet(ArrayList<VCFEntry> vars, GenomeInfo ginfo, boolean withindels) {
         this.ginfo = ginfo;
@@ -77,7 +78,18 @@ public class VCFEntrySet {
      * be stored in memory.
      *
      * @param f
-     * @param vcomp
+     * 
+     * File from which to read variants
+     * 
+     * @param ginfo
+     * 
+     * An object describing the reference genome
+     * 
+     * @param withindels
+     * 
+     * if true, the entryset will retain rows in the input that describe indels. If false,
+     * such rows will be omitted.
+     *
      */
     public VCFEntrySet(File f, GenomeInfo ginfo, boolean withindels) {
 
@@ -109,7 +121,6 @@ public class VCFEntrySet {
             }
 
             // read the whole vcf file into memory
-
             while (line != null) {
                 VCFEntry nowentry = new VCFEntry(line, ginfo);
                 // add it if the variant is a substitution or if indels are explicitly allowed
@@ -135,6 +146,40 @@ public class VCFEntrySet {
 
         Arrays.sort(variants, vcomp);
         System.gc();
+    }
+
+    /**
+     * Change the header of the VCF set by adding one line. If the exact line
+     * already exists in the header, this function does nothing.
+     *
+     * @param line
+     */
+    public void addHeaderLines(String line) {
+
+        // make sure the line starts with a double hash. If it doesn't change the line
+        // so that it has a double hash.
+        if (!line.startsWith("##")) {
+            if (line.startsWith("#")) {
+                line = "#" + line;
+            } else {
+                line = "##" + line;
+            }
+        }
+        while (line.endsWith("\n") && !line.isEmpty()) {
+            line = line.substring(0, line.length() - 1);
+        }
+
+        // change the header into a collection of lines
+        ArrayList<String> headerlines = new ArrayList<String>(Arrays.asList(header.toString().split("\n")));
+        // make sure the existing header lines do not contain this input
+        for (int i = 0; i < headerlines.size(); i++) {
+            if (headerlines.get(i).equals(line)) {
+                return;
+            }
+        }
+
+        // if reached here, the line is new. So append it to the header
+        header.append(line).append("\n");
     }
 
     /**
@@ -251,7 +296,7 @@ public class VCFEntrySet {
      *
      * interval is (start, end), i.e. both are included
      *
-     * @param chr
+     * @param chrindex
      * @param start
      * @param end
      * @return
@@ -297,4 +342,133 @@ public class VCFEntrySet {
     int compare(Object o1, Object o2) {
         return vcomp.compare(o1, o2);
     }
+
+    /**
+     * In a vcf file, it is possilbe to describe multiple neighboring variants
+     * in one entry. For example, adjacent substitutions chr1:101:A:T and
+     * chr1:102:T:G can be written as chr1:101:AT:TG. This function looks at the
+     * entries stored in the set and breaks up this type of complex definitions
+     * into simple SNVs, i.e. simple single-position variants.
+     *
+     * If successful (i.e. if variants are indeed modified in the entry set),
+     * this function will modify the variant filter fields to indicate that they
+     * have been split up.
+     *
+     * After ending, this function will leave the variant set sorted.
+     *
+     */
+    public void separateMultiSNVs() {
+
+        // track if at least one entry was separated
+        boolean splitsome = false;
+
+        // create a new arraylist
+        ArrayList<VCFEntry> simplevars = new ArrayList<VCFEntry>(variants.length * 3 / 2);
+
+        ArrayList<VCFEntry> temp;
+        // process each variant in order
+        for (int i = 0; i < variants.length; i++) {            
+            temp = separateOneVCFEntry(variants[i]);
+            if (temp == null) {
+                simplevars.add(variants[i]);
+            } else {
+                splitsome = true;
+                for (int j = 0; j < temp.size(); j++) {
+                    simplevars.add(temp.get(j));
+                }
+            }
+        }
+
+        // make sure the simple variants are sorted
+        variants = new VCFEntry[simplevars.size()];
+        for (int i = 0; i < simplevars.size(); i++) {
+            variants[i] = simplevars.get(i);
+        }
+        Arrays.sort(variants, vcomp);
+        
+        if (splitsome) {
+            addHeaderLines("##FILTER=<ID=separated,Description=\"Variant obtained by splitting a complex variant into multiple positions\">");
+        }
+    }
+
+    /**
+     *
+     * @param entry
+     *
+     * a vcf entry to be split
+     *
+     * @return
+     *
+     * returns null when entry does not require splitting, or if it is too
+     * complicated to be split. returns an array of vcf entries if a split was
+     * successful.
+     */
+    private ArrayList<VCFEntry> separateOneVCFEntry(VCFEntry entry) {
+
+        // the simplest case is when ref/alt are one character each
+        if (entry.getRef().length() == 1 && entry.getAlt().length() == 1) {
+            return null;
+        }
+
+        // if reached here, the variant is more complicated...
+        // get information about all the alleles, ref and alt
+        String ref = entry.getRef();
+        int reflen = ref.length();
+        String[] alt = entry.getAlt().split(",");
+        int numalt = alt.length;
+        int[] altlen = new int[numalt];
+        for (int i = 0; i < numalt; i++) {
+            altlen[i] = alt[i].length();
+        }
+
+        // check that all alt alleles are of equal length
+        // if they are not, report that variant cannot or will not be split
+        for (int i = 0; i < numalt; i++) {
+            if (altlen[i] != reflen) {
+                return null;
+            }
+        }
+
+        // all alleles have the same length. 
+        // A special case is when ref is just one letter, e.g. a simple heterozygous
+        // variant. In this case, does not require splitting. 
+        if (reflen == 1) {
+            return null;
+        }
+
+        // if here, the entry needs splitting
+        ArrayList<VCFEntry> newentries = new ArrayList<VCFEntry>(reflen);
+        int pos = entry.getPosition();
+        for (int i = 0; i < reflen; i++) {
+
+            // build ref/alt for this offset position
+            String newref = ref.substring(i, i + 1);
+            String[] newalt = new String[numalt];
+            String newalttot = "";
+            boolean allequal = true;
+            for (int j = 0; j < numalt; j++) {
+                newalt[j] = alt[j].substring(i, i + 1);
+                if (!newalt[j].equals(newref)) {
+                    allequal = false;
+                }
+                if (j == 0) {
+                    newalttot = newalt[j];
+                } else {
+                    newalttot += "," + newalt[j];
+                }
+            }
+
+            if (!allequal) {
+                VCFEntry newentry = new VCFEntry(entry);
+                newentry.setPosition(pos + i);
+                newentry.setRef(newref);
+                newentry.setAlt(newalttot);
+                newentry.addFilter("separated");
+                newentries.add(newentry);
+            }
+        }
+
+        return newentries;
+    }
+
 }
