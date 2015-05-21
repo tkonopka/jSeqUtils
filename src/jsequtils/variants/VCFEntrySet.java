@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Tomasz Konopka.
+ * Copyright 2013-2015 Tomasz Konopka.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,17 +78,17 @@ public class VCFEntrySet {
      * be stored in memory.
      *
      * @param f
-     * 
+     *
      * File from which to read variants
-     * 
+     *
      * @param ginfo
-     * 
+     *
      * An object describing the reference genome
-     * 
+     *
      * @param withindels
-     * 
-     * if true, the entryset will retain rows in the input that describe indels. If false,
-     * such rows will be omitted.
+     *
+     * if true, the entryset will retain rows in the input that describe indels.
+     * If false, such rows will be omitted.
      *
      */
     public VCFEntrySet(File f, GenomeInfo ginfo, boolean withindels) {
@@ -367,7 +367,7 @@ public class VCFEntrySet {
 
         ArrayList<VCFEntry> temp;
         // process each variant in order
-        for (int i = 0; i < variants.length; i++) {            
+        for (int i = 0; i < variants.length; i++) {
             temp = separateOneVCFEntry(variants[i]);
             if (temp == null) {
                 simplevars.add(variants[i]);
@@ -385,7 +385,7 @@ public class VCFEntrySet {
             variants[i] = simplevars.get(i);
         }
         Arrays.sort(variants, vcomp);
-        
+
         if (splitsome) {
             addHeaderLines("##FILTER=<ID=separated,Description=\"Variant obtained by splitting a complex variant into multiple positions\">");
         }
@@ -471,4 +471,21 @@ public class VCFEntrySet {
         return newentries;
     }
 
+    /**
+     * Runs a check on the variants read into the variant entry set.
+     *
+     * @return
+     *
+     * If all variants cann be matched with a chromosome with ginfo, returns
+     * true. If not, false.
+     */
+    public boolean check() {
+        int numvars = variants.length;
+        for (int i = 0; i < numvars; i++) {
+            if (variants[i].getChr(ginfo) == null) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

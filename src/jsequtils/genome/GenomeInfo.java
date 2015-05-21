@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Tomasz Konopka.
+ * Copyright 2013-2015 Tomasz Konopka.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -133,7 +133,7 @@ public class GenomeInfo {
      *
      */
     public String getChrName(int index) {
-        if (index < numchroms) {
+        if (index < numchroms && index >= 0) {
             return chrnames.get(index);
         } else {
             return null;
@@ -143,16 +143,16 @@ public class GenomeInfo {
     /**
      *
      * @param index
-     * 
+     *
      * index of chromosome. Beware, negative index will cause an exception.
-     * 
+     *
      * @return
      *
      * length of chromosome at given index. -1 if index is out of range.
      *
      */
     public int getChrLength(int index) {
-        if (index < numchroms) {
+        if (index < numchroms && index >= 0) {
             return chrlengths.get(index);
         } else {
             return -1;

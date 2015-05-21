@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Tomasz Konopka.
+ * Copyright 2012-2015 Tomasz Konopka.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public class FastaReader {
         // read the first line from the reader and record it as the next chromosome's name
         String s = chromosomereader.readLine();
         if (s.length() > 0 && s.startsWith(">")) {
-            nextname = s.substring(1);
+            nextname = s.substring(1).split("\\s+")[0];
         } else {
             nextname = null;
         }
@@ -105,7 +105,7 @@ public class FastaReader {
         boolean readmore = true;
         while (readmore && ((s = chromosomereader.readLine()) != null)) {
             if (s.length() > 0 && s.startsWith(">")) {
-                nextname = s.substring(1);
+                nextname = s.substring(1).split("\\s+")[0];
                 readmore = false;                
             } else {
                 sb.append(s);
